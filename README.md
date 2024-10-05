@@ -1,1 +1,1 @@
-Basic example of JWT token authtorization using Spring Security.
+Basic example of JWT token authentication and authorization using Spring Security.
