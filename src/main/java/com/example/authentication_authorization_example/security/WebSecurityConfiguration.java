@@ -4,6 +4,9 @@ import com.example.authentication_authorization_example.security.filter.Authoriz
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,10 +25,11 @@ import java.util.List;
 public class WebSecurityConfiguration {
 
     private final AuthorizationFilter authorizationFilter;
-    ;
+    private final AuthenticationProvider authenticationProvider;
 
-    public WebSecurityConfiguration(AuthorizationFilter authorizationFilter) {
+    public WebSecurityConfiguration(AuthorizationFilter authorizationFilter, AuthenticationProvider authenticationProvider) {
         this.authorizationFilter = authorizationFilter;
+        this.authenticationProvider = authenticationProvider;
     }
 
     @Bean
@@ -48,11 +52,19 @@ public class WebSecurityConfiguration {
                 )
                 .authorizeHttpRequests(requests -> {
                     requests.requestMatchers("/auth/login").permitAll();
+                    requests.requestMatchers("/index.html").permitAll();
+                    requests.requestMatchers("/js/script.js").permitAll();
+                    requests.requestMatchers("/favicon.ico").permitAll();
                     requests.anyRequest().authenticated();
                 })
                 .addFilterBefore(authorizationFilter,
                         org.springframework.security.web.access.intercept.AuthorizationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(authenticationProvider);
     }
 
     private CorsConfigurationSource corsConfiguration() {

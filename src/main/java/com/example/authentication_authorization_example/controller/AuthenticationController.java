@@ -1,15 +1,14 @@
 package com.example.authentication_authorization_example.controller;
 
 import com.example.authentication_authorization_example.dto.LoginRequest;
-import com.example.authentication_authorization_example.security.util.Constant;
+import com.example.authentication_authorization_example.security.service.CustomAuthenticationService;
+import com.example.authentication_authorization_example.security.token.CustomAuthenticationToken;
 import com.example.authentication_authorization_example.security.util.JWTUtil;
-import com.example.authentication_authorization_example.service.AuthenticationService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,24 +18,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class AuthenticationController {
 
-    private final AuthenticationService authenticationService;
     private final JWTUtil jwtUtil;
-    private final UserDetailsService userDetailsService;
+    private  final AuthenticationManager  authenticationManager;
 
-    public AuthenticationController(AuthenticationService authenticationService, JWTUtil jwtUtil, @Qualifier("userDetailsService") UserDetailsService userDetailsService) {
-        this.authenticationService = authenticationService;
+    public AuthenticationController(JWTUtil jwtUtil, AuthenticationManager authenticationManager) {
         this.jwtUtil = jwtUtil;
-        this.userDetailsService = userDetailsService;
+        this.authenticationManager = authenticationManager;
     }
 
 
     @PostMapping("/login")
     public ResponseEntity<Void> authenticate(HttpServletResponse response, @RequestBody LoginRequest loginRequest) {
 
-        UserDetails userDetails = authenticationService.login(loginRequest);
-        var jwt = jwtUtil.generateJwtToken(userDetails);
-        response.setHeader(HttpHeaders.SET_COOKIE, Constant.COOKIE_NAME + "=" + jwt);
+        var customAuthenticationToken = new CustomAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword());
+
+        var authenticate =  authenticationManager.authenticate(customAuthenticationToken);
+
+
+        var cookie = jwtUtil.generateJwtCookie((CustomAuthenticationToken) authenticate);
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+
+        Cookie clearCookie = jwtUtil.generateCookieForClearingFromBrowser();
+        response.addCookie(clearCookie);
+
+        return ResponseEntity.ok().build();
+    }
+
 
 }
